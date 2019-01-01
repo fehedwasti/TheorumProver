@@ -9,12 +9,13 @@ int cases =10;/* number of formulas expected in input.txt*/
 int i;/* in case you need it */
 int ThSize=100;/* maximum size of set of formulas*/
 int TabSize=500; /*maximum length of tableau queue*/
+int tableauIsClosed = 1;
 
 
 
 /* A set will contain a list of words. Use NULL for emptyset.  */
   struct set{
-    char *item;/*first word of non-empty set*/
+    char *item;/* pointer to first word of non-empty set*/
     struct set *tail;/*remaining words in the set*/
   };
 
@@ -42,7 +43,7 @@ int bfunction(char *g){
     return 0;
 }
 int checkformula(char *g){
-  printf("running on %s\n", g);
+
   int brackets = 0;
   char x[100];
   char y[100];
@@ -133,7 +134,7 @@ int checkformula(char *g){
     }
 
     }
-    printf("x = ");
+    /*printf("x = ");
     for (int i = 0; i<= indx; i++){
 	printf("%c", x[i]);
     }
@@ -143,7 +144,7 @@ int checkformula(char *g){
     for (int i = 0; i<= indy; i++){
 	printf("%c", y[i]);
     }
-    printf("\n");
+    printf("\n");*/
 
     char *x1, *y1;
     x1 = &x[0];
@@ -160,6 +161,7 @@ int checkformula(char *g){
     return (checkformula(x1) && checkformula(y1));
 }
 int parse(char *g){
+  printf("name = %s\n", g);
   int isFormula;
   int negation = 0;
 
@@ -203,9 +205,109 @@ int parse(char *g){
 
 }
 
-int closed(struct tableau *t) {return(2);}
-void complete(struct tableau *t){}
+int negations(char *g){
+  int negationCount = 0;
+  while(*g == '-'){
+    negationCount++;
+    g++;
+  }
+  return (negationCount % 2);
+}
 
+void complete(struct tableau *t){
+  int outernegation;
+  //S is the root of the tableau
+  //to add a leaf, use *t->rest->S =
+  char *g = t->S->item;
+  outernegation = negations(g);
+  while (*g == '-')
+    g++;
+
+  int brackets = 0;
+  char x[100];
+  char y[100];
+  int indx = 0;
+  int indy = 0;
+  int connective;
+
+  if (prop(g)){
+    tableauIsClosed = 0;
+    return;
+  }
+  else{
+    //inside binary formula ---(pvq)>q)
+    g++;
+    while (*g == '-'){
+      x[indx] = *g;
+      g++;
+    }
+    if (prop(g)){
+      x[indx] = *g;
+      indx++;
+    }
+    else if (*g == '('){
+      brackets += 1;
+      x[indx] = *g;
+      while (brackets != 0){
+        g++;
+        indx++;
+        if (*g == '('){
+          brackets += 1;
+        }
+        else if (*g == ')'){
+          brackets -= 1;
+        }
+        x[indx] = *g;
+      }
+    }
+    g++;
+    //x complete
+    printf("connective: %c", *g);
+    if (*g == 'v')
+      connective = 0;
+    else if (*g == '^')
+      connective = 1;
+    else if (*g == '>')
+      connective = 2;
+    //binary connective determined.
+    g++;
+
+
+    while (*g != '\0'){
+
+      y[indy] = *g;
+      g++; indy++;
+    }
+    indy--;
+    y[indy] = '\0';
+
+  }
+  printf("\nX = ");
+  for (int i = 0; i <= indx; i++){
+    printf("%c", x[i]);
+  }
+  printf("\nconnective: %i\n", connective);
+  printf("Y = ");
+  for (int i = 0; i <= indy; i++){
+    printf("%c", y[i]);
+  }
+  printf("\n");
+
+  printf("current pointer value = %c\n", *g);
+  //outernegation and connective known
+  //x and y stored
+
+}
+
+int closed(struct tableau *t) {
+
+  if (tableauIsClosed){
+    return 1;
+  }
+  else{
+    return 0;
+  }
+}
 /*You should not need to alter the program below.*/
 int main() {
   /*input a string and check if its a propositional formula */
