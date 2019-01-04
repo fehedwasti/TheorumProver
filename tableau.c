@@ -228,7 +228,7 @@ void complete(struct tableau *t){
   char y[100];
   int indx = 0;
   int indy = 0;
-  int connective;
+  int connective; // 0='v'  1='^'  2='>'
 
   if (prop(g)){
     tableauIsClosed = 0;
@@ -296,7 +296,67 @@ void complete(struct tableau *t){
   printf("current pointer value = %c\n", *g);
   //outernegation and connective known
   //x and y stored
+  if (connective == 0){
+    if(outernegation){
+      //negated disjunction :: alpha
+      char w[strlen(x)+strlen(y)+4];
+      strcpy(w,"-");
+      strcat(w,x);
+      strcat(w,",-");
+      strcat(w,y);
+      //store {-x, -y} = {w}
+    }
+    else{
+      //disjunction :: beta
+      //store {x} and {y}
+    }
+  }
+  else if (connective == 1){
+    if(outernegation){
+      //negated conjunction :: beta
+      char w[strlen(x)+2];
+      strcpy(w,"-");
+      strcat(w,x);
+      char v[strlen(y)+2];
+      strcpy(v,"-");
+      strcat(v,y);
 
+      //store {w} and {v}
+    }
+    else{
+      //conjunction :: alpha
+      char w[strlen(x)+strlen(y)+3];
+      strcpy(w,x);
+      strcat(w,",");
+      strcat(w,y);
+      //store {x, y}={w}
+    }
+  }
+  else if (connective == 2){
+    if(outernegation){
+      //negated implication :: alpha
+      char w[strlen(x)+strlen(y)+4];
+      strcpy(w,x);
+      strcat(w,",-");
+      strcat(w,y);
+      //store {x, -y}={w}
+    }
+    else{
+      //implication :: beta
+      char w[strlen(x)+2];
+      strcpy(w,"-");
+      strcat(w,x);
+      //store {w} and {y}
+    }
+  }
+
+}
+
+void addAlpha(char *alphaString, struct tableau *t){
+  //find the set containing the formula
+  //extract all terms except the formula and add them to the string
+  //remove the formula string from the set
+  //add in the new string.
 }
 
 int closed(struct tableau *t) {
