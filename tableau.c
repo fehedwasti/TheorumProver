@@ -10,7 +10,10 @@ int i;/* in case you need it */
 int ThSize=100;/* maximum size of set of formulas*/
 int TabSize=500; /*maximum length of tableau queue*/
 int tableauIsClosed = 1;
-
+int contradiction = 0;
+char myTableau[100][50];
+int indTab = 1;
+void complete();
 
 
 /* A set will contain a list of words. Use NULL for emptyset.  */
@@ -214,11 +217,109 @@ int negations(char *g){
   return (negationCount % 2);
 }
 
+void contradictionCheck(char *u){
+  printf("checking: %s\n", u);
+  if (strstr(u, ",p,") != NULL && strstr(u,"-p") != NULL){
+    contradiction = 1;
+    printf("BOB\n");
+  }
+  else if (strstr(u, ",q,") != NULL && strstr(u,"-q") != NULL){
+    contradiction = 1;
+    printf("BOB\n");
+  }
+  else if (strstr(u, ",r,") != NULL && strstr(u,"-r") != NULL){
+    contradiction = 1;
+    printf("BOB\n");
+  }
+  else{
+    tableauIsClosed = 0;
+  }
+}
+
+void addAlpha(char formula[], struct tableau *t){
+  //z pointer is before the formula position
+  printf("I WAS IN ALPHA!!!\nmyTableau\n");
+  for (int i = 0; i <= indTab; i++){
+    char *z = myTableau[i];
+    char store[strlen(z)];
+    strcpy(store,",");
+    printf("Term: %s\n", z);
+    if (strstr(myTableau[i], t->S->item) != NULL){
+      char *formulaPos = strstr(myTableau[i], t->S->item);
+      printf("formulaPosition: %s\n", formulaPos);
+      char addcharacter[2];
+      addcharacter[1] = '\0';
+      while (*z != *formulaPos){
+        addcharacter[0] = *z;
+        strcat(store,addcharacter);
+        z++;
+      }
+      strcat(store,formula);
+      z += (int)strlen(t->S->item);
+      strcat(store,z);
+      strcat(store,",");
+      strcpy(myTableau[i], store);
+      //new alpha formula stored.
+    }
+    else{
+      continue;
+    }
+  }
+  printf("Changed Tableau\n");
+  for (int i = 0; i <= indTab; i++){
+    printf("%s\n", myTableau[i]);
+    if (strstr(myTableau[i], "(") == NULL){
+      printf("*****Tableau Complete*****\n\n");
+      contradictionCheck(myTableau[i]);
+      if (!contradiction){
+        printf("*****Formula Satisfied*****\n\n");
+        return;
+      }
+      else{
+        printf("**Contradiction. set removed***\n\n");
+        strcpy(myTableau[i],"\0");
+        contradiction = 0;
+      }
+    }
+    else{
+      /*
+      char *formulaPos = strstr(myTableau[i], "),");
+      int count =0;
+      while (*formulaPos != ','){
+        count++;
+        formulaPos--;
+      }
+      formulaPos++;
+      char newName[count+2];
+      strcpy(newName, "\0");
+      char addcharacter[2];
+      addcharacter[1] = '\0';
+      while(*formulaPos != ','){
+        addcharacter[0] = *formulaPos;
+        strcat(newName, addcharacter);
+        formulaPos++;
+      }
+      printf("\ncount: %i, formula: ", count);
+      for (int i = 0; i<strlen(newName); i++){
+        printf("%c", newName[i]);
+      }
+      printf("HI");
+      struct set M = {newName, NULL};
+      struct tableau n = {&M, NULL};
+      complete(&n);*/
+    }
+  }
+  printf("\n");
+}
+void addBeta(char formula1[], char formula2[], struct tableau *t){
+
+}
 void complete(struct tableau *t){
   int outernegation;
   //S is the root of the tableau
   //to add a leaf, use *t->rest->S =
   char *g = t->S->item;
+  printf("completing: %s\n", g);
   outernegation = negations(g);
   while (*g == '-')
     g++;
@@ -231,8 +332,17 @@ void complete(struct tableau *t){
   int connective; // 0='v'  1='^'  2='>'
 
   if (prop(g)){
-    tableauIsClosed = 0;
-    return;
+    char w[3];
+    if (outernegation){
+      w[0] = '-';
+      w[1] = *g;
+      w[2] = '\0';
+    }
+    else{
+      w[0] = *g;
+      w[1] = '\0';
+    }
+    addAlpha(w,t);
   }
   else{
     //inside binary formula ---(pvq)>q)
@@ -243,7 +353,7 @@ void complete(struct tableau *t){
     }
     if (prop(g)){
       x[indx] = *g;
-      indx++;
+      indx++; x[indx] = '\0'; indx++;
     }
     else if (*g == '('){
       brackets += 1;
@@ -262,7 +372,7 @@ void complete(struct tableau *t){
     }
     g++;
     //x complete
-    printf("connective: %c", *g);
+    //printf("connective: %c", *g);
     if (*g == 'v')
       connective = 0;
     else if (*g == '^')
@@ -281,83 +391,80 @@ void complete(struct tableau *t){
     indy--;
     y[indy] = '\0';
 
-  }
-  printf("\nX = ");
-  for (int i = 0; i <= indx; i++){
-    printf("%c", x[i]);
-  }
-  printf("\nconnective: %i\n", connective);
-  printf("Y = ");
-  for (int i = 0; i <= indy; i++){
-    printf("%c", y[i]);
-  }
-  printf("\n");
+    printf("\nX = ");
+    for (int i = 0; i <= indx; i++){
+      printf("%c", x[i]);
+    }
+    printf("\nconnective: %i\n", connective);
+    printf("Y = ");
+    for (int i = 0; i <= indy; i++){
+      printf("%c", y[i]);
+    }
+    printf("\n");
+    //outernegation and connective known
+    //x and y stored
+    if (connective == 0){
+      if(outernegation){
+        //negated disjunction :: alpha
+        char w[strlen(x)+strlen(y)+4];
+        strcpy(w,"-");
+        strcat(w,x);
+        strcat(w,",-");
+        strcat(w,y);
+        //store {-x, -y} = {w}
+        addAlpha(w, t);
+      }
+      else{
+        //disjunction :: beta
+        //store {x} and {y}
+      }
+    }
+    else if (connective == 1){
+      if(outernegation){
+        //negated conjunction :: beta
+        char w[strlen(x)+2];
+        strcpy(w,"-");
+        strcat(w,x);
+        char v[strlen(y)+2];
+        strcpy(v,"-");
+        strcat(v,y);
 
-  printf("current pointer value = %c\n", *g);
-  //outernegation and connective known
-  //x and y stored
-  if (connective == 0){
-    if(outernegation){
-      //negated disjunction :: alpha
-      char w[strlen(x)+strlen(y)+4];
-      strcpy(w,"-");
-      strcat(w,x);
-      strcat(w,",-");
-      strcat(w,y);
-      //store {-x, -y} = {w}
+        //store {w} and {v}
+      }
+      else{
+        //conjunction :: alpha
+        char w[strlen(x)+strlen(y)+3];
+        strcpy(w,x);
+        strcat(w,",");
+        strcat(w,y);
+        //store {x, y}={w}
+        addAlpha(w, t);
+      }
     }
-    else{
-      //disjunction :: beta
-      //store {x} and {y}
+    else if (connective == 2){
+      if(outernegation){
+        //negated implication :: alpha
+        char w[strlen(x)+strlen(y)+4];
+        strcpy(w,x);
+        strcat(w,",-");
+        strcat(w,y);
+        //store {x, -y}={w}
+        addAlpha(w, t);
+      }
+      else{
+        //implication :: beta
+        char w[strlen(x)+2];
+        strcpy(w,"-");
+        strcat(w,x);
+        //store {w} and {y}
+      }
     }
   }
-  else if (connective == 1){
-    if(outernegation){
-      //negated conjunction :: beta
-      char w[strlen(x)+2];
-      strcpy(w,"-");
-      strcat(w,x);
-      char v[strlen(y)+2];
-      strcpy(v,"-");
-      strcat(v,y);
 
-      //store {w} and {v}
-    }
-    else{
-      //conjunction :: alpha
-      char w[strlen(x)+strlen(y)+3];
-      strcpy(w,x);
-      strcat(w,",");
-      strcat(w,y);
-      //store {x, y}={w}
-    }
-  }
-  else if (connective == 2){
-    if(outernegation){
-      //negated implication :: alpha
-      char w[strlen(x)+strlen(y)+4];
-      strcpy(w,x);
-      strcat(w,",-");
-      strcat(w,y);
-      //store {x, -y}={w}
-    }
-    else{
-      //implication :: beta
-      char w[strlen(x)+2];
-      strcpy(w,"-");
-      strcat(w,x);
-      //store {w} and {y}
-    }
-  }
 
 }
 
-void addAlpha(char *alphaString, struct tableau *t){
-  //find the set containing the formula
-  //extract all terms except the formula and add them to the string
-  //remove the formula string from the set
-  //add in the new string.
-}
+
 
 int closed(struct tableau *t) {
 
@@ -394,6 +501,12 @@ int main() {
       struct set S = {name, NULL};
       struct tableau t = {&S, NULL};
       if (parse(name)!=0){
+        tableauIsClosed = 1;
+        strcpy(myTableau[0], "q,");
+        strcat(myTableau[0], name);
+        strcat(myTableau[0], ",p");
+        strcpy(myTableau[1], name);
+        strcat(myTableau[1], ",r");
         complete(&t);
 	      if (closed(&t))
             fprintf(fpout, "%s is not satisfiable.\n", name);
