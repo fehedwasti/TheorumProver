@@ -12,7 +12,7 @@ int TabSize=500; /*maximum length of tableau queue*/
 int tableauIsClosed = 1;
 int contradiction = 0;
 char myTableau[100][50];
-int indTab = 1;
+int indTab = 0;
 void complete();
 
 
@@ -164,6 +164,7 @@ int checkformula(char *g){
     return (checkformula(x1) && checkformula(y1));
 }
 int parse(char *g){
+  indTab = 0;
   printf("name = %s\n", g);
   int isFormula;
   int negation = 0;
@@ -246,7 +247,6 @@ void addAlpha(char formula[], struct tableau *t){
     printf("Term: %s\n", z);
     if (strstr(myTableau[i], t->S->item) != NULL){
       char *formulaPos = strstr(myTableau[i], t->S->item);
-      printf("formulaPosition: %s\n", formulaPos);
       char addcharacter[2];
       addcharacter[1] = '\0';
       while (*z != *formulaPos){
@@ -312,7 +312,58 @@ void addAlpha(char formula[], struct tableau *t){
   printf("\n");
 }
 void addBeta(char formula1[], char formula2[], struct tableau *t){
+  printf("ARE YOU BETA???\nmyTableau\n");
+  for (int i = 0; i <= indTab; i++){
+    printf("Term: %s\n", myTableau[i]);
+    char *z = myTableau[i];
+    char store1[strlen(z)];
+    char store2[strlen(z)];
+    strcpy(store1,",");
+    strcpy(store2,",");
+    if (strstr(myTableau[i], t->S->item) != NULL){
+      char *formulaPos = strstr(myTableau[i], t->S->item);
+      char addcharacter[2];
+      addcharacter[1] = '\0';
+      while (*z != *formulaPos){
+        addcharacter[0] = *z;
+        strcat(store1,addcharacter);
+        strcat(store2,addcharacter);
+        z++;
+      }
+      strcat(store1,formula1);
+      strcat(store2,formula2);
+      z += (int)strlen(t->S->item);
+      strcat(store1,z);
+      strcat(store2,z);
+      strcat(store1,",");
+      strcat(store2,",");
+      strcpy(myTableau[i], store1);
+      strcpy(myTableau[indTab+1], store2);
+      indTab++;
+      //new alpha formula stored.
+    }
+    else{
+      continue;
+    }
+  }
 
+  printf("Changed Tableau\n");
+  for (int i = 0; i <= indTab; i++){
+    printf("%s\n", myTableau[i]);
+    if (strstr(myTableau[i], "(") == NULL){
+      printf("*****Tableau Complete*****\n\n");
+      contradictionCheck(myTableau[i]);
+      if (!contradiction){
+        printf("*****Formula Satisfied*****\n\n");
+        return;
+      }
+      else{
+        printf("**Contradiction. set removed***\n\n");
+        strcpy(myTableau[i],"\0");
+        contradiction = 0;
+      }
+    }
+  }
 }
 void complete(struct tableau *t){
   int outernegation;
@@ -347,13 +398,18 @@ void complete(struct tableau *t){
   else{
     //inside binary formula ---(pvq)>q)
     g++;
+    int negativeX = 0;
+    int negativeY = 0;
     while (*g == '-'){
-      x[indx] = *g;
+      negativeX++;
       g++;
+    }
+    if (negativeX % 2 == 1){
+      x[indx] = *(g-1); indx++;
     }
     if (prop(g)){
       x[indx] = *g;
-      indx++; x[indx] = '\0'; indx++;
+      indx++;
     }
     else if (*g == '('){
       brackets += 1;
@@ -383,15 +439,21 @@ void complete(struct tableau *t){
     g++;
 
 
+    while (*g == '-'){
+      negativeY++;
+      g++;
+    }
+    if (negativeY % 2 == 1){
+      y[indy] = *(g-1); indy++;
+    }
     while (*g != '\0'){
-
       y[indy] = *g;
       g++; indy++;
     }
     indy--;
     y[indy] = '\0';
 
-    printf("\nX = ");
+    printf("\nindx = %i\nX = ", indx);
     for (int i = 0; i <= indx; i++){
       printf("%c", x[i]);
     }
@@ -407,9 +469,36 @@ void complete(struct tableau *t){
       if(outernegation){
         //negated disjunction :: alpha
         char w[strlen(x)+strlen(y)+4];
-        strcpy(w,"-");
+        if (x[0] == '-'){
+          strcpy(w,"\0");
+          for (int i = 0; i < indx; i++){
+            printf("%c\n", x[i]);
+            x[i] = x[i+1];
+          }
+          x[indx-1] = '\0';
+          printf("indx: %i\nnew x: ", indx);
+          for (int i = 0; i < indx; i++){
+            printf("%c", x[i]);
+          }
+        }
+        else{
+          strcpy(w,"-");
+        }
         strcat(w,x);
-        strcat(w,",-");
+        if (y[0] == '-'){
+          strcat(w,",");
+          for (int i = 0; i < indy; i++){
+            y[i] = y[i+1];
+          }
+          y[indy-1] = '\0';
+          printf("\nnew Y: ");
+          for (int i = 0; i < indy; i++){
+            printf("%c", y[i]);
+          }
+        }
+        else{
+          strcat(w,",-");
+        }
         strcat(w,y);
         //store {-x, -y} = {w}
         addAlpha(w, t);
@@ -417,19 +506,35 @@ void complete(struct tableau *t){
       else{
         //disjunction :: beta
         //store {x} and {y}
+        addBeta(x,y,t);
       }
     }
     else if (connective == 1){
       if(outernegation){
         //negated conjunction :: beta
         char w[strlen(x)+2];
-        strcpy(w,"-");
+        if (x[0] == '-'){
+          strcpy(w,"\0");
+          for (int i = 0; i < indx; i++){
+            printf("%c\n", x[i]);
+            x[i] = x[i+1];
+          }
+          x[indx-1] = '\0';
+          printf("indx: %i\nnew x: ", indx);
+          for (int i = 0; i < indx; i++){
+            printf("%c", x[i]);
+          }
+        }
+        else{
+          strcpy(w,"-");
+        }
         strcat(w,x);
         char v[strlen(y)+2];
         strcpy(v,"-");
         strcat(v,y);
 
         //store {w} and {v}
+        addBeta(w,v,t);
       }
       else{
         //conjunction :: alpha
@@ -446,7 +551,20 @@ void complete(struct tableau *t){
         //negated implication :: alpha
         char w[strlen(x)+strlen(y)+4];
         strcpy(w,x);
-        strcat(w,",-");
+        if (y[0] == '-'){
+          strcat(w,",");
+          for (int i = 0; i < indy; i++){
+            y[i] = y[i+1];
+          }
+          y[indy-1] = '\0';
+          printf("\nnew Y: ");
+          for (int i = 0; i < indy; i++){
+            printf("%c", y[i]);
+          }
+        }
+        else{
+          strcat(w,",-");
+        }
         strcat(w,y);
         //store {x, -y}={w}
         addAlpha(w, t);
@@ -454,9 +572,24 @@ void complete(struct tableau *t){
       else{
         //implication :: beta
         char w[strlen(x)+2];
-        strcpy(w,"-");
+        if (x[0] == '-'){
+          strcpy(w,"\0");
+          for (int i = 0; i < indx; i++){
+            printf("%c\n", x[i]);
+            x[i] = x[i+1];
+          }
+          x[indx-1] = '\0';
+          printf("indx: %i\nnew x: ", indx);
+          for (int i = 0; i < indx; i++){
+            printf("%c", x[i]);
+          }
+        }
+        else{
+          strcpy(w,"-");
+        }
         strcat(w,x);
         //store {w} and {y}
+        addBeta(w,y,t);
       }
     }
   }
@@ -502,11 +635,8 @@ int main() {
       struct tableau t = {&S, NULL};
       if (parse(name)!=0){
         tableauIsClosed = 1;
-        strcpy(myTableau[0], "q,");
+        strcpy(myTableau[0], "\0");
         strcat(myTableau[0], name);
-        strcat(myTableau[0], ",p");
-        strcpy(myTableau[1], name);
-        strcat(myTableau[1], ",r");
         complete(&t);
 	      if (closed(&t))
             fprintf(fpout, "%s is not satisfiable.\n", name);
