@@ -32,6 +32,13 @@ struct tableau {
 /*You need to change this next bit and include functions for parse, closed and complete.*/
 
 //from my parse code
+void printFormula(char formula[]){
+  printf("\nPrinting formula: ");
+  for (int i = 0; i<strlen(formula); i++){
+    printf("%c", formula[i]);
+  }
+  printf("\n");
+}
 int prop(char *g){
   if(*g == 'p' || *g == 'q' || *g == 'r'){
       return 1;
@@ -205,6 +212,7 @@ int parse(char *g){
 
     return 0;
   }
+  return 0;
 
 
 }
@@ -232,6 +240,10 @@ void contradictionCheck(char *u){
     contradiction = 1;
     printf("BOB\n");
   }
+  else if (strstr(u,"p") == NULL && strstr(u,"q") == NULL && strstr(u,"r") == NULL){
+    contradiction = 1;
+    printf("empty set\n");
+  }
   else{
     tableauIsClosed = 0;
   }
@@ -243,13 +255,17 @@ void addAlpha(char formula[], struct tableau *t){
   for (int i = 0; i <= indTab; i++){
     char *z = myTableau[i];
     char store[strlen(z)];
-    strcpy(store,",");
+    strcpy(store, "\0");
     printf("Term: %s\n", z);
-    if (strstr(myTableau[i], t->S->item) != NULL){
+    char check[strlen(t->S->item) + 3];
+    strcpy(check,",");
+    strcat(check, t->S->item);
+    strcat(check,",");
+    if (strstr(myTableau[i], check) != NULL){
       char *formulaPos = strstr(myTableau[i], t->S->item);
       char addcharacter[2];
       addcharacter[1] = '\0';
-      while (*z != *formulaPos){
+      while (z != formulaPos){
         addcharacter[0] = *z;
         strcat(store,addcharacter);
         z++;
@@ -257,7 +273,6 @@ void addAlpha(char formula[], struct tableau *t){
       strcat(store,formula);
       z += (int)strlen(t->S->item);
       strcat(store,z);
-      strcat(store,",");
       strcpy(myTableau[i], store);
       //new alpha formula stored.
     }
@@ -268,28 +283,35 @@ void addAlpha(char formula[], struct tableau *t){
   printf("Changed Tableau\n");
   for (int i = 0; i <= indTab; i++){
     printf("%s\n", myTableau[i]);
-    if (strstr(myTableau[i], "(") == NULL){
-      printf("*****Tableau Complete*****\n\n");
-      contradictionCheck(myTableau[i]);
-      if (!contradiction){
-        printf("*****Formula Satisfied*****\n\n");
-        return;
+    if(strstr(myTableau[i], "(") == NULL){
+      if (tableauIsClosed){
+        printf("*****Tableau Complete*****\n\n");
+        contradictionCheck(myTableau[i]);
+        if (!contradiction){
+          printf("*****Formula Satisfied*****\n\n");
+          return;
+        }
+        else{
+          printf("**Contradiction. set removed***\n\n");
+          strcpy(myTableau[i],"\0");
+          contradiction = 0;
+        }
       }
       else{
-        printf("**Contradiction. set removed***\n\n");
-        strcpy(myTableau[i],"\0");
-        contradiction = 0;
+        break;
       }
     }
+
     else{
-      /*
-      char *formulaPos = strstr(myTableau[i], "),");
+      char *formulaPos = strstr(myTableau[i], "(");
+      if (*(formulaPos - 1) == '-')
+            formulaPos = strstr(myTableau[i], "-(");
       int count =0;
       while (*formulaPos != ','){
         count++;
-        formulaPos--;
+        formulaPos++;
       }
-      formulaPos++;
+      formulaPos -= count;
       char newName[count+2];
       strcpy(newName, "\0");
       char addcharacter[2];
@@ -306,26 +328,34 @@ void addAlpha(char formula[], struct tableau *t){
       printf("HI");
       struct set M = {newName, NULL};
       struct tableau n = {&M, NULL};
-      complete(&n);*/
+      complete(&n);
     }
   }
   printf("\n");
 }
 void addBeta(char formula1[], char formula2[], struct tableau *t){
   printf("ARE YOU BETA???\nmyTableau\n");
-  for (int i = 0; i <= indTab; i++){
+        //printFormula(formula1);
+  int tab = indTab;
+  for (int i = 0; i <= tab; i++){
     printf("Term: %s\n", myTableau[i]);
     char *z = myTableau[i];
     char store1[strlen(z)];
     char store2[strlen(z)];
-    strcpy(store1,",");
-    strcpy(store2,",");
-    if (strstr(myTableau[i], t->S->item) != NULL){
+    strcpy(store1,"\0");
+    strcpy(store2,"\0");
+    char check[strlen(t->S->item) + 3];
+    strcpy(check,",");
+    strcat(check, t->S->item);
+    strcat(check,",");
+    if (strstr(myTableau[i], check) != NULL){
       char *formulaPos = strstr(myTableau[i], t->S->item);
       char addcharacter[2];
       addcharacter[1] = '\0';
-      while (*z != *formulaPos){
+      while (z != formulaPos){
         addcharacter[0] = *z;
+        printf("z: %s\n", z);
+        printf("fpos: %s", formulaPos);
         strcat(store1,addcharacter);
         strcat(store2,addcharacter);
         z++;
@@ -335,8 +365,6 @@ void addBeta(char formula1[], char formula2[], struct tableau *t){
       z += (int)strlen(t->S->item);
       strcat(store1,z);
       strcat(store2,z);
-      strcat(store1,",");
-      strcat(store2,",");
       strcpy(myTableau[i], store1);
       strcpy(myTableau[indTab+1], store2);
       indTab++;
@@ -362,6 +390,34 @@ void addBeta(char formula1[], char formula2[], struct tableau *t){
         strcpy(myTableau[i],"\0");
         contradiction = 0;
       }
+    }
+    else{
+      char *formulaPos = strstr(myTableau[i], "(");
+      if (*(formulaPos - 1) == '-')
+            formulaPos = strstr(myTableau[i], "-(");
+      int count =0;
+      while (*formulaPos != ','){
+        count++;
+        formulaPos++;
+      }
+      formulaPos -= count;
+      char newName[count+2];
+      strcpy(newName, "\0");
+      char addcharacter[2];
+      addcharacter[1] = '\0';
+      while(*formulaPos != ','){
+        addcharacter[0] = *formulaPos;
+        strcat(newName, addcharacter);
+        formulaPos++;
+      }
+      printf("\ncount: %i, formula: ", count);
+      for (int i = 0; i<strlen(newName); i++){
+        printf("%c", newName[i]);
+      }
+      printf("HI");
+      struct set M = {newName, NULL};
+      struct tableau n = {&M, NULL};
+      complete(&n);
     }
   }
 }
@@ -405,11 +461,17 @@ void complete(struct tableau *t){
       g++;
     }
     if (negativeX % 2 == 1){
-      x[indx] = *(g-1); indx++;
+      printf("***negative X***\n");
+      strcpy(x,"-"); indx++;
+    }
+    else{
+      printf("normal X\n");
+      strcpy(x,"\0");
     }
     if (prop(g)){
+      printf("MY NAME JEFF: %c\n", *g);
       x[indx] = *g;
-      indx++;
+      x[indx+1] = '\0';
     }
     else if (*g == '('){
       brackets += 1;
@@ -426,6 +488,7 @@ void complete(struct tableau *t){
         x[indx] = *g;
       }
     }
+    printFormula(x);
     g++;
     //x complete
     //printf("connective: %c", *g);
@@ -444,7 +507,10 @@ void complete(struct tableau *t){
       g++;
     }
     if (negativeY % 2 == 1){
-      y[indy] = *(g-1); indy++;
+      strcpy(y,"-"); indy++;
+    }
+    else{
+      strcpy(y,"\0");
     }
     while (*g != '\0'){
       y[indy] = *g;
@@ -471,15 +537,15 @@ void complete(struct tableau *t){
         char w[strlen(x)+strlen(y)+4];
         if (x[0] == '-'){
           strcpy(w,"\0");
-          for (int i = 0; i < indx; i++){
-            printf("%c\n", x[i]);
+          for (int i = 0; i <= indx; i++){
             x[i] = x[i+1];
           }
-          x[indx-1] = '\0';
-          printf("indx: %i\nnew x: ", indx);
+          x[indx] = '\0';
+          printf("\nnew x: ");
           for (int i = 0; i < indx; i++){
             printf("%c", x[i]);
           }
+          printf("\n");
         }
         else{
           strcpy(w,"-");
@@ -495,6 +561,7 @@ void complete(struct tableau *t){
           for (int i = 0; i < indy; i++){
             printf("%c", y[i]);
           }
+          printf("\n");
         }
         else{
           strcat(w,",-");
@@ -515,22 +582,36 @@ void complete(struct tableau *t){
         char w[strlen(x)+2];
         if (x[0] == '-'){
           strcpy(w,"\0");
-          for (int i = 0; i < indx; i++){
-            printf("%c\n", x[i]);
+          for (int i = 0; i <= indx; i++){
             x[i] = x[i+1];
           }
-          x[indx-1] = '\0';
-          printf("indx: %i\nnew x: ", indx);
+          x[indx] = '\0';
+          printf("\nnew x: ");
           for (int i = 0; i < indx; i++){
             printf("%c", x[i]);
           }
+          printf("\n");
         }
         else{
           strcpy(w,"-");
         }
         strcat(w,x);
         char v[strlen(y)+2];
-        strcpy(v,"-");
+        if (y[0] == '-'){
+          strcpy(v,"\0");
+          for (int i = 0; i < indy; i++){
+            y[i] = y[i+1];
+          }
+          y[indy-1] = '\0';
+          printf("\nnew Y: ");
+          for (int i = 0; i < indy; i++){
+            printf("%c", y[i]);
+          }
+          printf("\n");
+        }
+        else{
+          strcpy(v,"-");
+        }
         strcat(v,y);
 
         //store {w} and {v}
@@ -561,6 +642,7 @@ void complete(struct tableau *t){
           for (int i = 0; i < indy; i++){
             printf("%c", y[i]);
           }
+          printf("\n");
         }
         else{
           strcat(w,",-");
@@ -580,7 +662,7 @@ void complete(struct tableau *t){
           }
           x[indx-1] = '\0';
           printf("indx: %i\nnew x: ", indx);
-          for (int i = 0; i < indx; i++){
+          for (int i = 0; i <= indx; i++){
             printf("%c", x[i]);
           }
         }
@@ -635,8 +717,9 @@ int main() {
       struct tableau t = {&S, NULL};
       if (parse(name)!=0){
         tableauIsClosed = 1;
-        strcpy(myTableau[0], "\0");
+        strcpy(myTableau[0], ",");
         strcat(myTableau[0], name);
+        strcat(myTableau[0], ",");
         complete(&t);
 	      if (closed(&t))
             fprintf(fpout, "%s is not satisfiable.\n", name);

@@ -3,3 +3,7 @@ out
 output.txt
 alphaCases.txt
 betaCases.txt
+out.dSYM
+givenInput.txt
+test
+test.c
